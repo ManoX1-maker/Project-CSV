@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doc to CSV Converter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .upload-box {
+      border: 2px dashed #334155;
+      border-radius: 16px;
+      padding: 50px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #1e293b;
+      margin-bottom: 20px;
+    }
+
+    .upload-box:hover, .upload-box.dragover {
+      border-color: #6366f1;
+      background: #1e293b;
+      box-shadow: 0 0 30px rgba(99,102,241,0.15);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .upload-box h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+
+    .upload-box p {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .file-types {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    input[type="file"] { display: none; }
+
+    .file-selected {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #334155;
+    }
+
+    .file-selected.show { display: flex; }
+
+    .file-icon { font-size: 28px; }
+
+    .file-info { flex: 1; }
+
+    .file-info .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+
+    .file-info .size {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .convert-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      display: none;
+    }
+
+    .convert-btn.show { display: block; }
+    .convert-btn:hover { opacity: 0.9; }
+
+    .status {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #94a3b8;
+      min-height: 20px;
+    }
+
+    .status.success { color: #22c55e; }
+    .status.error { color: #ef4444; }
+
+    .progress {
+      width: 100%;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 4px;
+      margin-top: 16px;
+      display: none;
+      overflow: hidden;
+    }
+
+    .progress.show { display: block; }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border-radius: 4px;
+      transition: width 0.4s;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>📄 Doc to CSV</h1>
+      <p>Convert any document to a clean CSV file instantly</p>
+    </div>
+
+    <div class="upload-box" id="uploadBox">
+      <div class="upload-icon">☁️</div>
+      <h3>Drag & drop your file here</h3>
+      <p>or tap to browse</p>
+      <div class="file-types">
+        <span class="badge">PDF</span>
+        <span class="badge">XLSX</span>
+        <span class="badge">DOCX</span>
+        <span class="badge">CSV</span>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.docx,.csv">
+    </div>
+
+    <div class="file-selected" id="fileSelected">
+      <div class="file-icon" id="fileIcon">📄</div>
+      <div class="file-info">
+        <div class="name" id="fileName">filename.pdf</div>
+        <div class="size" id="fileSize">0 KB</div>
+      </div>
+      <button class="remove-btn" id="removeBtn">✕</button>
+    </div>
+
+    <button class="convert-btn" id="convertBtn">
+      ✨ Convert to CSV
+    </button>
+
+    <div class="progress" id="progress">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelected = document.getElementById('fileSelected');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileIcon = document.getElementById('fileIcon');
+    const removeBtn = document.getElementById('removeBtn');
+    const convertBtn = document.getElementById('convertBtn');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const progressBar = document.getElementById('progressBar');
+
+    const icons = {
+      pdf: '📕', xlsx: '📗', xls: '📗',
+      docx: '📘', csv: '📊'
+    };
+
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    uploadBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadBox.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      fileName.textContent = file.name;
+      fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+      fileIcon.textContent = icons[ext] || '📄';
+      fileSelected.classList.add('show');
+      convertBtn.classList.add('show');
+      status.textContent = '';
+      status.className = 'status';
+    }
+
+    removeBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      fileSelected.classList.remove('show');
+      convertBtn.classList.remove('show');
+      progress.classList.remove('show');
+      status.textContent = '';
+      progressBar.style.width = '0%';
+    });
+
+    convertBtn.addEventListener('click', async () => {
+      if (!fileInput.files[0]) return;
+
+      convertBtn.disabled = true;
+      progress.classList.add('show');
+      status.textContent = 'Converting...';
+      status.className = 'status';
+
+      // Animate progress bar
+      let width = 0;
+      const interval = setInterval(() => {
+        if (width < 85) {
+          width += 5;
+          progressBar.style.width = width + '%';
+        }
+      }, 150);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        // 🔁 Replace this URL with your Replit backend URL
+        const response = await fetch('https://YOUR-REPLIT-URL.repl.co/', {
+          method: 'POST',
+          body: formData
+        });
+
+        clearInterval(interval);
+        progressBar.style.width = '100%';
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'output.csv';
+          a.click();
+          status.textContent = '✅ Converted successfully!';
+          status.className = 'status success';
+        } else {
+          throw new Error('Conversion failed');
+        }
+
+      } catch (err) {
+        clearInterval(interval);
+        // For now show success UI since backend isn't connected yet
+        progressBar.style.width = '100%';
+        status.textContent = '⚠️ Connect your Replit backend to convert files';
+        status.className = 'status error';
+      }
+
+      convertBtn.disabled = false;
+    });
+  </script>
+
+</body>
+</html>
